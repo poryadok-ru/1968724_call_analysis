@@ -1,6 +1,8 @@
 services:
   callq-department1:
-    build: .
+    build:
+      context: .
+      network: host
     container_name: callq-department1
     dns:
       - 8.8.8.8
