@@ -14,8 +14,9 @@ __pycache__/
 # Logs
 logs/
 
-# Environment files
-.env*
+# Environment files - template only
+.env.local
+.env.production
 
 # Metabase and database
 docker-compose.metabase.yml
