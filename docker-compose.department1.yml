@@ -2,6 +2,9 @@ services:
   callq-department1:
     build: .
     container_name: callq-department1
+    dns:
+      - 8.8.8.8
+      - 1.1.1.1
     env_file:
       - .env
     volumes:
@@ -9,4 +12,3 @@ services:
       - ./acc_google_api:/app/acc_google_api:ro
       - ./prompts:/app/prompts:ro
     restart: "no"
-    network_mode: host

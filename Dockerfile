@@ -1,8 +1,6 @@
-FROM python:3.13
+FROM python:3.13-alpine
 
 WORKDIR /app
-
-RUN apt-get update && apt-get install -y gcc && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .
 
@@ -11,8 +9,5 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY callq/  ./callq/
 
 RUN mkdir -p /app/logs
-
-RUN useradd -m -u 1000 appuser && chown -R appuser:appuser /app
-USER appuser
 
 CMD ["python", "-m", "callq.pipelines.daily_run"]
