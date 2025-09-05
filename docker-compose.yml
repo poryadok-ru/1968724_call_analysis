@@ -1,0 +1,27 @@
+services:
+  app:
+    build: .
+    container_name: PythonCallq
+    environment:
+      - LOGGING_NAME=${LOGGING_NAME:-callq}
+      - LOGGING_LEVEL=${LOGGING_LEVEL:-INFO}
+      - LOGGING_DIR=${LOGGING_DIR:-logs}
+      - LOGGING_ON_CONSOLE=${LOGGING_ON_CONSOLE:-true}
+      - LOGGING_ON_FILE=${LOGGING_ON_FILE:-true}
+      - LOGIN=${LOGIN}
+      - PASSWORD=${PASSWORD}
+      - AUTH_TYPE=${AUTH_TYPE}
+      - AUTH_SYSTEM=${AUTH_SYSTEM}
+      - JSON_AUTH=${JSON_AUTH}
+      - REQUIREMENTS_SHEET_ID=${REQUIREMENTS_SHEET_ID}
+      - REQUIREMENTS_SHEET_NAME_CHECK_LIST=${REQUIREMENTS_SHEET_NAME_CHECK_LIST}
+      - REQUIREMENTS_SHEET_NAME_PROMPT_FOR_AI=${REQUIREMENTS_SHEET_NAME_PROMPT_FOR_AI}
+      - RESULTS_SHEET_NAME=${RESULTS_SHEET_NAME}
+      - APPS_SCRIPT_URL=${APPS_SCRIPT_URL}
+      - APPS_SCRIPT_FUNCTION=${APPS_SCRIPT_FUNCTION}
+      - TOKEN_LLM=${TOKEN_LLM}
+      - MODEL=${MODEL}
+    volumes:
+      - ./logs:/app/logs
+      - ./acc_google_api:/app/acc_google_api:ro
+    restart: unless-stopped

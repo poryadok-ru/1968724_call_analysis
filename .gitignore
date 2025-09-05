@@ -1,0 +1,29 @@
+# Virtual Environment
+.venv/
+venv/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# IDE
+.idea/
+.vscode/
+
+# Logs
+logs/
+
+# Environment files
+.env*
+
+# Metabase and database
+docker-compose.metabase.yml
+metabase_settings_backup.sql
+db/
+
+# Test files
+test
+
+# Temporary files
+*.tmp

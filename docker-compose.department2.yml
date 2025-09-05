@@ -1,0 +1,12 @@
+services:
+  callq-department2:
+    build: .
+    container_name: callq-department2
+    env_file:
+      - .env.department2
+    volumes:
+      - ./logs:/app/logs
+      - ./acc_google_api:/app/acc_google_api:ro
+      - ./prompts:/app/prompts:ro
+    restart: "no"
+    network_mode: host
