@@ -27,4 +27,5 @@ db/
 test
 
 # Temporary files
-*.tmp
+*.tmp# Docker logs
+docker.log
