@@ -117,11 +117,11 @@ class LLM:
         headers = {"Authorization": f"Bearer {self._token}"}
 
         max_retries = 3
-        base_delay = 2.0
+        base_delay = 3.0
         
         for attempt in range(max_retries):
             try:
-                timeout = aiohttp.ClientTimeout(total=360)
+                timeout = aiohttp.ClientTimeout(total=300)
                 async with session.post(
                     self._endpoint_completions, 
                     json=json_data, 

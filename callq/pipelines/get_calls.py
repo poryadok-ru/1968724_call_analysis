@@ -63,11 +63,13 @@ def get_calls(date: str, login: str, password: str, agent_group_name: str = None
 
         transcriptions_start = time.time()
         records = []
+        filtered_by_duration = 0
         
         logger.info(f"Начинаем получение {len(calls)} транскрипций...")
         for i, call in enumerate(calls, 1):
 
             if call.duration < min_duration:
+                filtered_by_duration += 1
                 continue
 
             trn = api.get_transcription_by_call_id(call.segmentId)
@@ -80,6 +82,9 @@ def get_calls(date: str, login: str, password: str, agent_group_name: str = None
         transcriptions_duration = time.time() - transcriptions_start
         avg_time_per_transcription = transcriptions_duration / len(calls) if calls else 0
         logger.info(f"Все транскрипции получены за {transcriptions_duration:.1f}с (в среднем {avg_time_per_transcription:.2f}с на транскрипцию)")
+        
+        if filtered_by_duration > 0:
+            logger.info(f"Отфильтровано звонков по длительности (< {min_duration}с): {filtered_by_duration}")
 
     if postgres_client:
         filter_start = time.time()

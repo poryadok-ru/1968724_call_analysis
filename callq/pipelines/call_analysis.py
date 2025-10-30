@@ -58,6 +58,7 @@ async def analyze_single_call(call: CallRecord, criteria_list: str, custom_instr
         return None
         
     async with semaphore:
+        await asyncio.sleep(0.1)
         logger.info(f"Начинаю анализ звонка {call.segment_id}")
 
         transcription = formation_of_transcription(call)
@@ -161,18 +162,27 @@ def analyze_calls_async(calls: List[CallRecord], criteria: Criterion, prompt_inp
 
             successful_results = []
             total_tokens = 0
+            filtered_count = 0
+            error_count = 0
             
             for i, result in enumerate(results):
                 if isinstance(result, Exception):
                     logger.error(f"Ошибка анализа {calls_with_transcription[i].segment_id}: {str(result)}")
+                    error_count += 1
                 elif result is None:
+                    filtered_count += 1
                     continue
                 else:
                     report, tokens_used = result
                     successful_results.append(report)
                     total_tokens += tokens_used
             
-            logger.info(f"Анализ завершен. Продажных звонков: {len(successful_results)}, токенов: {total_tokens}")
+            logger.info(f"Анализ завершен:")
+            logger.info(f"  - Всего звонков на анализ: {len(calls_with_transcription)}")
+            logger.info(f"  - Продажных звонков (успешно): {len(successful_results)}")
+            logger.info(f"  - Отфильтровано (не продажные): {filtered_count}")
+            logger.info(f"  - Ошибок анализа: {error_count}")
+            logger.info(f"  - Использовано токенов: {total_tokens}")
             return successful_results
 
     return asyncio.run(run_analysis())
