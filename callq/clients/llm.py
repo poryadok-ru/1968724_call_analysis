@@ -66,7 +66,7 @@ class LLM:
                 response = self._session.post(
                     self._endpoint_completions, 
                     json=json,
-                    timeout=60
+                    timeout=360
                 )
 
                 if response.status_code == requests.codes.ok:
@@ -121,7 +121,7 @@ class LLM:
         
         for attempt in range(max_retries):
             try:
-                timeout = aiohttp.ClientTimeout(total=60)
+                timeout = aiohttp.ClientTimeout(total=360)
                 async with session.post(
                     self._endpoint_completions, 
                     json=json_data, 
