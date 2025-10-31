@@ -54,7 +54,7 @@ class LLM:
         json = {
             "model": self._model,
             "messages": [msg],
-            "max_completion_tokens": 4000
+            "max_completion_tokens": 8000
         }
 
         self._set_header()
@@ -112,7 +112,7 @@ class LLM:
         json_data = {
             "model": self._model,
             "messages": [msg],
-            "max_completion_tokens": 4000
+            "max_completion_tokens": 8000
         }
 
         headers = {"Authorization": f"Bearer {self._token}"}
