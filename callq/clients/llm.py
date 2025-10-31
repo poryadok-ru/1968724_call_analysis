@@ -73,6 +73,17 @@ class LLM:
                     data = response.json()
                     return LLMResponse.from_dict(data)
 
+                elif response.status_code == 429:
+                    # Rate limit - большая задержка
+                    if attempt < max_retries - 1:
+                        delay = 60.0
+                        print(f"Rate limit 429, попытка {attempt + 1}/{max_retries}, ждем {delay}с")
+                        import time
+                        time.sleep(delay)
+                        continue
+                    else:
+                        raise RuntimeError(f"Rate limit после {max_retries} попыток: {response.status_code} {response.text}")
+                
                 elif 500 <= response.status_code < 600:
                     if attempt < max_retries - 1:
                         delay = base_delay * (2 ** attempt)
@@ -83,8 +94,16 @@ class LLM:
                     else:
                         raise RuntimeError(f"Серверная ошибка после {max_retries} попыток: {response.status_code} {response.text}")
 
-                else:
-                    raise RuntimeError(f"Ошибка клиента: {response.status_code} {response.text}")
+                elif response.status_code >= 400:
+                    # Любая другая клиентская ошибка - 60 секунд задержка
+                    if attempt < max_retries - 1:
+                        delay = 60.0
+                        print(f"Клиентская ошибка {response.status_code}, попытка {attempt + 1}/{max_retries}, ждем {delay}с")
+                        import time
+                        time.sleep(delay)
+                        continue
+                    else:
+                        raise RuntimeError(f"Ошибка клиента: {response.status_code} {response.text}")
                     
             except (requests.exceptions.Timeout, requests.exceptions.ConnectionError, requests.exceptions.RequestException) as e:
                 if attempt < max_retries - 1:
@@ -138,6 +157,17 @@ class LLM:
                             
                         return LLMResponse.from_dict(data)
 
+                    elif response.status == 429:
+                        # Rate limit - большая задержка
+                        if attempt < max_retries - 1:
+                            delay = 60.0
+                            print(f"Rate limit 429, попытка {attempt + 1}/{max_retries}, ждем {delay}с")
+                            await asyncio.sleep(delay)
+                            continue
+                        else:
+                            error_text = await response.text()
+                            raise RuntimeError(f"Rate limit после {max_retries} попыток: {response.status} {error_text}")
+                    
                     elif 500 <= response.status < 600:
                         if attempt < max_retries - 1:
                             delay = base_delay * (2 ** attempt)
@@ -148,9 +178,17 @@ class LLM:
                             error_text = await response.text()
                             raise RuntimeError(f"Серверная ошибка после {max_retries} попыток: {response.status} {error_text}")
 
-                    else:
-                        error_text = await response.text()
-                        raise RuntimeError(f"Ошибка клиента: {response.status} {error_text}")
+                    elif response.status >= 400:
+                        # Любая другая клиентская ошибка - 60 секунд задержка
+                        if attempt < max_retries - 1:
+                            delay = 60.0
+                            error_text = await response.text()
+                            print(f"Клиентская ошибка {response.status}, попытка {attempt + 1}/{max_retries}, ждем {delay}с")
+                            await asyncio.sleep(delay)
+                            continue
+                        else:
+                            error_text = await response.text()
+                            raise RuntimeError(f"Ошибка клиента: {response.status} {error_text}")
                         
             except (aiohttp.ClientError, asyncio.TimeoutError) as e:
                 if attempt < max_retries - 1:
