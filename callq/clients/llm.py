@@ -59,7 +59,7 @@ class LLM:
         self._set_header()
 
         max_retries = 3
-        base_delay = 2.0
+        base_delay = 5.0
         
         for attempt in range(max_retries):
             try:
@@ -116,7 +116,7 @@ class LLM:
         headers = {"Authorization": f"Bearer {self._token}"}
 
         max_retries = 3
-        base_delay = 3.0
+        base_delay = 5.0
         
         for attempt in range(max_retries):
             try:
