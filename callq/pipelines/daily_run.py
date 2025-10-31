@@ -63,7 +63,7 @@ def daily_run() -> None:
         token=config.LLM_PROXY.TOKEN,
         model=config.LLM_PROXY.MODEL,
         prompt_file=config.APP.PROMPT_FILE,
-        max_concurrent=5
+        max_concurrent=3
     )
 
     if results:
