@@ -131,9 +131,11 @@ class LLM:
                     
                     if response.status == 200:
                         data = await response.json()
-                        # Проверка наличия содержимого
+                        
                         if not data.get('choices') or not data['choices'][0].get('message', {}).get('content'):
-                            print(f"⚠️  Пустой ответ от LLM API! Status 200, но нет content. Full response: {str(data)[:200]}")
+                            print(f"Пустой ответ от LLM API! Status 200, но нет content. Full response: {str(data)[:200]}")
+                            raise ValueError("Пустой ответ от LLM API")
+                            
                         return LLMResponse.from_dict(data)
 
                     elif 500 <= response.status < 600:
