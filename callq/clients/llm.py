@@ -7,6 +7,7 @@ from requests import Session
 
 from callq.models import LLMResponse
 from callq.utils import logging, typed_retry
+from callq import get_logger
 
 
 class LLM:
@@ -133,7 +134,8 @@ class LLM:
                         data = await response.json()
                         
                         if not data.get('choices') or not data['choices'][0].get('message', {}).get('content'):
-                            print(f"Пустой ответ от LLM API! Status 200, но нет content. Full response: {str(data)[:200]}")
+                            logger = get_logger()
+                            logger.error(f"Пустой ответ от LLM API! Status 200, но нет content. Full response: {str(data)[:500]}")
                             raise ValueError("Пустой ответ от LLM API")
                             
                         return LLMResponse.from_dict(data)
