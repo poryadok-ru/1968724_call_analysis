@@ -86,7 +86,7 @@ class LLM:
                 
                 elif 500 <= response.status_code < 600:
                     if attempt < max_retries - 1:
-                        delay = base_delay * (2 ** attempt)
+                        delay = 60.0
                         print(f"Серверная ошибка {response.status_code}, попытка {attempt + 1}/{max_retries}, ждем {delay}с")
                         import time
                         time.sleep(delay)
@@ -107,7 +107,7 @@ class LLM:
                     
             except (requests.exceptions.Timeout, requests.exceptions.ConnectionError, requests.exceptions.RequestException) as e:
                 if attempt < max_retries - 1:
-                    delay = base_delay * (2 ** attempt)
+                    delay = 60.0
                     print(f"Сетевая ошибка: {str(e)}, попытка {attempt + 1}/{max_retries}, ждем {delay}с")
                     import time
                     time.sleep(delay)
@@ -170,7 +170,7 @@ class LLM:
                     
                     elif 500 <= response.status < 600:
                         if attempt < max_retries - 1:
-                            delay = base_delay * (2 ** attempt)
+                            delay = 60.0
                             print(f"Серверная ошибка {response.status}, попытка {attempt + 1}/{max_retries}, ждем {delay}с")
                             await asyncio.sleep(delay)
                             continue
@@ -192,7 +192,7 @@ class LLM:
                         
             except (aiohttp.ClientError, asyncio.TimeoutError) as e:
                 if attempt < max_retries - 1:
-                    delay = base_delay * (2 ** attempt)
+                    delay = 60.0
                     print(f"Сетевая ошибка: {str(e)}, попытка {attempt + 1}/{max_retries}, ждем {delay}с")
                     await asyncio.sleep(delay)
                     continue
