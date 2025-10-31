@@ -16,6 +16,10 @@ def parse_llm_response(response) -> tuple:
     """Парсит ответ LLM и возвращает данные анализа и количество токенов"""
     logger = get_logger()
     content = response.get_content()
+    
+    if not content:
+        logger.error(f"Пустой ответ от LLM! Response ID: {response.id}, Usage: {response.usage}")
+        raise ValueError("Пустой ответ от LLM")
 
     logger.debug(f"Сырой ответ GPT (первые 500 символов): {content[:500]}")
 
