@@ -56,9 +56,13 @@ class Agreement:
     def from_list(items: List[Dict[str, Any]]) -> List[Agreement]:
         result: List[Agreement] = []
         for item in items:
+            agreement_text = item.get('agreement')
+            if not agreement_text:
+                continue
+                
             result.append(Agreement(
                 amount=item.get('amount'),
-                agreement=item.get('agreement'),
+                agreement=agreement_text,
             ))
 
         return result

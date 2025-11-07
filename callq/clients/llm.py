@@ -179,7 +179,7 @@ class LLM:
                             raise RuntimeError(f"Серверная ошибка после {max_retries} попыток: {response.status} {error_text}")
 
                     elif response.status >= 400:
-                        # Любая другая клиентская ошибка - 60 секунд задержка
+
                         if attempt < max_retries - 1:
                             delay = 60.0
                             error_text = await response.text()
