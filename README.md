@@ -58,10 +58,10 @@ graph TB
     C4 --> DB
 
     %% Стилизация
-    classDef external fill:#e1f5fe,stroke:#01579b,stroke-width:2px
-    classDef container fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
-    classDef process fill:#e8f5e8,stroke:#1b5e20,stroke-width:2px
-    classDef database fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    classDef external fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#000000
+    classDef container fill:#f3e5f5,stroke:#4a148c,stroke-width:2px,color:#000000
+    classDef process fill:#e8f5e8,stroke:#1b5e20,stroke-width:2px,color:#000000
+    classDef database fill:#fff3e0,stroke:#e65100,stroke-width:2px,color:#000000
 
     class GS,TB,LLM external
     class DC container
