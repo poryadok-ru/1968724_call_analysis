@@ -37,12 +37,28 @@ class Recommendation:
     @staticmethod
     def from_list(items: List[Dict[str, Any]]) -> List[Recommendation]:
         result: List[Recommendation] = []
+        allowed_priorities = {'high', 'medium', 'low'}
+
         for item in items:
+            if not item:
+                continue
+
+            priority_raw = item.get('priority')
+            priority_clean = str(priority_raw).strip().lower() if priority_raw is not None else ""
+            if priority_clean not in allowed_priorities:
+                priority_clean = 'medium'
+
+            issue = item.get('issue')
+            recommendation_text = item.get('recommendation')
+
+            if not issue or not recommendation_text:
+                continue
+
             result.append(Recommendation(
                 category=item.get('category'),
-                issue=item.get('issue'),
-                recommendation=item.get('recommendation'),
-                priority=item.get('priority'),
+                issue=issue,
+                recommendation=recommendation_text,
+                priority=priority_clean,
             ))
 
         return result
@@ -56,10 +72,17 @@ class Agreement:
     def from_list(items: List[Dict[str, Any]]) -> List[Agreement]:
         result: List[Agreement] = []
         for item in items:
-            agreement_text = item.get('agreement')
+            if not item:
+                continue
+
+            raw_agreement = item.get('agreement')
+            agreement_text = ""
+            if raw_agreement is not None:
+                agreement_text = str(raw_agreement).strip()
+
             if not agreement_text:
                 continue
-                
+
             result.append(Agreement(
                 amount=item.get('amount'),
                 agreement=agreement_text,
@@ -77,10 +100,29 @@ class DeclineReason:
     def from_list(items: List[Dict[str, Any]]) -> List[DeclineReason]:
         result: List[DeclineReason] = []
         for item in items:
+            if not item:
+                continue
+
+            raw_description = item.get('reason_description')
+            description = ""
+            if raw_description is not None:
+                description = str(raw_description).strip()
+
+            if not description:
+                continue
+
+            raw_reason_type = item.get('reason_type')
+            reason_type = str(raw_reason_type).strip() if raw_reason_type is not None else ""
+
+            product_category = item.get('product_category')
+            product_category_clean = (
+                str(product_category).strip() if product_category is not None else None
+            )
+
             result.append(DeclineReason(
-                reason_type=item.get('reason_type'),
-                reason_description=item.get('reason_description'),
-                product_category=item.get('product_category'),
+                reason_type=reason_type or "",
+                reason_description=description,
+                product_category=product_category_clean or None,
             ))
 
         return result

@@ -12,11 +12,12 @@ from callq.models.call_analysis_report import CallAnalysisReport
 from callq.models.analysis_result import Result, Agreement
 from callq.utils import logging
 
+
 def parse_llm_response(response) -> tuple:
     """Парсит ответ LLM и возвращает данные анализа и количество токенов"""
     logger = get_logger()
     content = response.get_content()
-    
+
     if not content:
         logger.error(f"Пустой ответ от LLM! Response ID: {response.id}, Usage: {response.usage}")
         raise ValueError("Пустой ответ от LLM")
@@ -51,7 +52,6 @@ def parse_llm_response(response) -> tuple:
     tokens_used = response.get_tokens_used()
     
     return analysis_data, tokens_used
-
 
 
 async def analyze_single_call(call: CallRecord, criteria_list: str, custom_instructions: str, 

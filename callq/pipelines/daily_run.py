@@ -41,7 +41,7 @@ def daily_run() -> None:
 
     postgres_client = PostgresClient(config.DATA_BASE.URL)
 
-    date_now = date.today() - timedelta(days=2)
+    date_now = date.today() - timedelta(days=config.APP.CHECK_DAY_AGO)
 
     check_day = date_now.strftime("%Y-%m-%d")
     logger.info(f"Получаем звонки за {check_day}")
