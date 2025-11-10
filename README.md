@@ -11,7 +11,7 @@ CallQ автоматически загружает записи звонков 
 - Получение чек-листа критериев и промпта из Google Sheets (через сервисный аккаунт).
 - Асинхронный анализ звонков LLM (LiteLLM Gateway) с ретраями, фильтрацией неподходящих диалогов и сбором статистики по токенам.
 - Запись результатов в PostgreSQL: оценки, рекомендации, договорённости, причины отказов, транскрипты.
-- Готовые Docker Compose файлы для запуска отдельных пайплайнов по отделам и для Metabase.
+- Готовые Docker Compose файлы для запуска отдельных пайплайнов по отделам.
 - Логирование в файлы и stdout, удобные сообщения о ходе обработки (количество звонков, ошибки JSON, пропуски и т. п.).
 - Возможность управляющего запуска через cron (см. пример crontab).
 
@@ -31,10 +31,9 @@ CallQ автоматически загружает записи звонков 
 - `callq/clients/` — клиенты для внешних сервисов: Google Sheets, T-Банк, LLM, PostgreSQL.
 - `callq/models/` — Pydantic-подобные dataclass-модели для типизированной работы с API и БД.
 - `callq/pipelines/` — сценарии пайплайна (получение данных, анализ, сохранение).
-- `db/init.sql` — создание схемы БД и загрузка справочников (отделы, офисы, операторы). Требуется отдельная миграция для `call_decline_reasons`.
+- `db/schema.sql` — полная схема БД с созданием всех таблиц, индексов и загрузкой справочников.
 - `prompts/` — шаблоны промптов LLM для каждого отдела.
 - `docker-compose.department1.yml`, `docker-compose.department2.yml` — готовые конфигурации для запуска отдельных пайплайнов.
-- `docker-compose.metabase.yml` — окружение для Metabase + Postgres (отдельно от боевой БД).
 
 ## Стек
 
@@ -57,18 +56,7 @@ CallQ автоматически загружает записи звонков 
 3. **Поместить файл сервисного аккаунта** Google в `acc_google_api/` и указать путь в `JSON_AUTH`.
 4. **Подготовить базу данных**:
    ```bash
-   psql postgresql://user:pass@host:port/db -f db/init.sql
-   ```
-   > ⚠️ В `init.sql` отсутствует таблица `call_decline_reasons`, которую использует код. Добавьте её вручную:
-   ```sql
-   CREATE TABLE IF NOT EXISTS call_decline_reasons (
-     id SERIAL PRIMARY KEY,
-     call_id BIGINT NOT NULL REFERENCES calls(id) ON DELETE CASCADE,
-     reason_type TEXT,
-     reason_description TEXT NOT NULL,
-     product_category TEXT
-   );
-   CREATE INDEX IF NOT EXISTS idx_decline_call_id ON call_decline_reasons(call_id);
+   psql postgresql://user:pass@host:port/db -f db/schema.sql
    ```
 5. **Установить зависимости для локального запуска (опционально)**: `pip install -r requirements.txt`.
 
@@ -134,7 +122,6 @@ python -m callq.pipelines.daily_run
 
 ## Дополнительные сервисы
 
-- `docker-compose.metabase.yml` поднимает Metabase и отдельные инстансы PostgreSQL. Используйте для BI-дашбордов.
 - Файлы `prompts/department*.txt` содержат шаблоны сообщений для LLM — при изменении учитывать placeholders `{transcription}`, `{criteria_list}`, `{custom_instructions}`.
 
 ## Известные особенности
