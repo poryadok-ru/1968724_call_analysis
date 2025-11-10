@@ -29,3 +29,6 @@ test
 # Temporary files
 *.tmp# Docker logs
 docker.log
+
+# Google API credentials
+acc_google_api/
