@@ -19,55 +19,54 @@ CallQ автоматически загружает записи звонков 
 
 ### Общая схема работы системы CallQ
 
-```
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│   Google Sheets  │    │   T-Bank API    │    │     LLM API     │
-│                 │    │                 │    │  (LiteLLM)      │
-│ • Критерии оценки│    │ • Звонки        │    │                 │
-│ • Промпты        │    │ • Транскрипты   │    │ • Анализ текста │
-│ • Токены доступа │    │ • Операторы     │    │ • JSON ответы   │
-└─────────┬───────┘    └─────────┬───────┘    └─────────┬───────┘
-          │                      │                      │
-          └──────────────────────┼──────────────────────┘
-                                 │
-                    ┌────────────▼────────────┐
-                    │                         │
-                    │    Docker Container     │
-                    │   (callq-department1/2) │
-                    │                         │
-                    │  ┌─────────────────┐    │
-                    │  │   Daily Run     │    │
-                    │  │   Pipeline      │    │
-                    │  │                 │    │
-                    │  │ 1. Get Config   │    │
-                    │  │    (Google)     │────┘
-                    │  │                 │
-                    │  │ 2. Get Calls    │
-                    │  │    (T-Bank)     │────┘
-                    │  │                 │
-                    │  │ 3. Analyze      │
-                    │  │    (LLM)        │────┘
-                    │  │                 │
-                    │  │ 4. Save to DB   │
-                    │  └─────────────────┘    │
-                    │                         │
-                    └─────────────┬───────────┘
-                                  │
-                                  ▼
-                    ┌─────────────────────────┐
-                    │                         │
-                    │     PostgreSQL DB       │
-                    │   (postgres_callq_data) │
-                    │                         │
-                    │ • calls                 │
-                    │ • call_transcripts      │
-                    │ • call_evaluations      │
-                    │ • call_recommendations  │
-                    │ • agreements            │
-                    │ • call_decline_reasons  │
-                    │ • operators, departments│
-                    │ • offices, supervisors  │
-                    └─────────────────────────┘
+```mermaid
+graph TB
+    %% Внешние сервисы
+    GS[Google Sheets<br/>• Критерии оценки<br/>• Промпты<br/>• Токены доступа]
+    TB[T-Bank API<br/>• Звонки<br/>• Транскрипты<br/>• Операторы]
+    LLM[LLM API<br/>LiteLLM<br/>• Анализ текста<br/>• JSON ответы]
+
+    %% Docker контейнер
+    DC[Docker Container<br/>callq-department1/2]
+
+    %% Пайплайн шаги
+    C1[1. Get Config<br/>Google Sheets]
+    C2[2. Get Calls<br/>T-Bank API]
+    C3[3. Analyze<br/>LLM API]
+    C4[4. Save to DB<br/>PostgreSQL]
+
+    %% База данных
+    DB[(PostgreSQL DB<br/>postgres_callq_data<br/>• calls<br/>• call_transcripts<br/>• call_evaluations<br/>• call_recommendations<br/>• agreements<br/>• call_decline_reasons<br/>• operators, departments<br/>• offices, supervisors)]
+
+    %% Связи внешних сервисов с контейнером
+    GS --> DC
+    TB --> DC
+    LLM --> DC
+
+    %% Поток внутри контейнера
+    DC --> C1
+    C1 --> C2
+    C2 --> C3
+    C3 --> C4
+
+    %% Обратные связи к внешним сервисам
+    C1 -.-> GS
+    C2 -.-> TB
+    C3 -.-> LLM
+
+    %% Сохранение в БД
+    C4 --> DB
+
+    %% Стилизация
+    classDef external fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+    classDef container fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    classDef process fill:#e8f5e8,stroke:#1b5e20,stroke-width:2px
+    classDef database fill:#fff3e0,stroke:#e65100,stroke-width:2px
+
+    class GS,TB,LLM external
+    class DC container
+    class C1,C2,C3,C4 process
+    class DB database
 ```
 
 ### Детальный поток данных
