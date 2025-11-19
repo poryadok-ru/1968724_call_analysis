@@ -146,9 +146,9 @@ class Result:
         
         return Result(
             is_sales_call=bool(data.get('is_sales_call')),
-            total_score=int(data.get('total_score')),
-            max_possible_score=int(data.get('max_possible_score')),
-            performance_percentage=int(data.get('performance_percentage')),
+            total_score=int(data.get('total_score') or 0),
+            max_possible_score=int(data.get('max_possible_score') or 0),
+            performance_percentage=int(data.get('performance_percentage') or 0),
 
             evaluations=Evaluation.from_list(data.get('evaluations')),
             recommendations=Recommendation.from_list(data.get('recommendations')),
