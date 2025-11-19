@@ -28,8 +28,9 @@ LICENSE
 .gitignore
 
 logs/
-.env
-.env.local
+
+.env*
+!.env.example
 credentials/
 *.json
 
