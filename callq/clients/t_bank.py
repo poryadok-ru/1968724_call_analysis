@@ -39,7 +39,7 @@ class TBankAPI:
         self._auth_url_old = urljoin(self.BASE_URL, "rest/auth/session-start")
         self._calls_url = urljoin(self.BASE_URL, "v2/bff-communication-search/callsessions")
         self._transcriptions_url = urljoin(self.BASE_URL, "rest/external-voice/transcription/filter")
-        self._single_transcription_url = urljoin(self.BASE_URL, "v2/bff-core-app/transcription/segment")
+        self._single_transcription_url = urljoin(self.BASE_URL, "v2/bff-core-app/transcription/segment?token=")
         self._autocomplete_url = urljoin(self.BASE_URL, "v2/bff-core-app/organizational-structures/autocomplete-search")
 
     def __del__(self):
@@ -56,13 +56,22 @@ class TBankAPI:
     def _set_headers(self, with_auth: bool = True) -> None:
         """Установить заголовки для JSON запросов."""
         headers = {
-            "Accept": "application/json",
-            "Content-Type": "application/json"
+            "Accept": "application/json, text/plain, */*",
+            "Content-Type": "application/json",
+            "Origin": "https://tqm-cloud.tbank.ru",
+            "Referer": "https://tqm-cloud.tbank.ru/v2/transcription/segment/",
+            "X-TQM-Version": "26551fa4",
+            "Sec-CH-UA": '"Chromium";v="142", "Google Chrome";v="142", "Not_A Brand";v="99"',
+            "Sec-CH-UA-Mobile": "?0",
+            "Sec-CH-UA-Platform": '"macOS"',
+            "Sec-Fetch-Dest": "empty",
+            "Sec-Fetch-Mode": "cors",
+            "Sec-Fetch-Site": "same-origin"
         }
-        
+
         if with_auth and self._token:
             headers["Authorization"] = f"Bearer {self._token}"
-        
+
         self._session.headers.update(headers)
     
     @typed_retry(max_attempts=3, delay=1.0)
