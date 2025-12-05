@@ -1,0 +1,211 @@
+name: Deploy CallQ to Production
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      
+      - name: Build Docker image
+        run: |
+          docker build -t callq:latest .
+      
+      - name: Save Docker image
+        run: |
+          docker save callq:latest | gzip > callq.tar.gz
+      
+      - name: Create directory structure on server
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          script: |
+            mkdir -p /opt/callq/callQ/{logs,acc_google_api,prompts}
+            chmod 755 /opt/callq/callQ
+            chmod 755 /opt/callq/callQ/logs
+            chmod 700 /opt/callq/callQ/acc_google_api
+            chmod 755 /opt/callq/callQ/prompts
+      
+      - name: Copy Docker image to server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          source: "callq.tar.gz"
+          target: "/opt/callq/callQ"
+          strip_components: 0
+      
+      - name: Copy prompts to server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          source: "prompts/*"
+          target: "/opt/callq/callQ/prompts"
+          strip_components: 0
+      
+      - name: Copy docker-compose files to server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          source: "docker-compose.department*.yml,Dockerfile,requirements.txt"
+          target: "/opt/callq/callQ"
+          strip_components: 0
+      
+      - name: Create Google API credentials file
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          script: |
+            cd /opt/callq/callQ/acc_google_api
+            cat > fine-avatar-469111-m1-95ff221217b8.json << 'EOF'
+            ${{ secrets.GOOGLE_JSON_KEY }}
+            EOF
+            chmod 600 fine-avatar-469111-m1-95ff221217b8.json
+      
+      - name: Create .env files and deploy
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          script: |
+            cd /opt/callq/callQ
+            
+            # Создаем .env.department1 для первого отдела
+            cat > .env.department1 << EOF
+            LOGGING_NAME=${{ secrets.LOGGING_NAME }}
+            LOGGING_LEVEL=${{ secrets.LOGGING_LEVEL }}
+            LOGGING_DIR=${{ secrets.LOGGING_DIR }}
+            LOGGING_ON_CONSOLE=${{ secrets.LOGGING_ON_CONSOLE }}
+            LOGGING_ON_FILE=${{ secrets.LOGGING_ON_FILE }}
+            LOGGING_ON_DT=${{ secrets.LOGGING_ON_DT }}
+            LOGIN=${{ secrets.LOGIN }}
+            PASSWORD=${{ secrets.PASSWORD }}
+            AUTH_TYPE=${{ secrets.AUTH_TYPE }}
+            AUTH_SYSTEM=${{ secrets.AUTH_SYSTEM }}
+            AGENT_GROUP_NAME=${{ secrets.DEPT1_AGENT_GROUP_NAME }}
+            JSON_AUTH=${{ secrets.JSON_AUTH_PATH }}
+            REQUIREMENTS_SHEET_ID=${{ secrets.REQUIREMENTS_SHEET_ID }}
+            REQUIREMENTS_SHEET_NAME_CHECK_LIST=${{ secrets.DEPT1_REQUIREMENTS_SHEET_NAME_CHECK_LIST }}
+            REQUIREMENTS_SHEET_NAME_PROMPT_FOR_AI=${{ secrets.DEPT1_REQUIREMENTS_SHEET_NAME_PROMPT_FOR_AI }}
+            TOKEN_LLM=${{ secrets.DEPT1_TOKEN_LLM }}
+            MODEL=${{ secrets.DEPT1_MODEL }}
+            DATA_BASE=${{ secrets.DATA_BASE }}
+            DEPARTAMENT_ID=${{ secrets.DEPT1_DEPARTAMENT_ID }}
+            CHECK_DAY_AGO=${{ secrets.CHECK_DAY_AGO }}
+            PROMPT_FILE=${{ secrets.DEPT1_PROMPT_FILE }}
+            EOF
+            
+            # Создаем .env.department2 для второго отдела
+            cat > .env.department2 << EOF
+            LOGGING_NAME=${{ secrets.LOGGING_NAME }}
+            LOGGING_LEVEL=${{ secrets.LOGGING_LEVEL }}
+            LOGGING_DIR=${{ secrets.LOGGING_DIR }}
+            LOGGING_ON_CONSOLE=${{ secrets.LOGGING_ON_CONSOLE }}
+            LOGGING_ON_FILE=${{ secrets.LOGGING_ON_FILE }}
+            LOGGING_ON_DT=${{ secrets.LOGGING_ON_DT }}
+            LOGIN=${{ secrets.LOGIN }}
+            PASSWORD=${{ secrets.PASSWORD }}
+            AUTH_TYPE=${{ secrets.AUTH_TYPE }}
+            AUTH_SYSTEM=${{ secrets.AUTH_SYSTEM }}
+            AGENT_GROUP_NAME=${{ secrets.DEPT2_AGENT_GROUP_NAME }}
+            JSON_AUTH=${{ secrets.JSON_AUTH_PATH }}
+            REQUIREMENTS_SHEET_ID=${{ secrets.REQUIREMENTS_SHEET_ID }}
+            REQUIREMENTS_SHEET_NAME_CHECK_LIST=${{ secrets.DEPT2_REQUIREMENTS_SHEET_NAME_CHECK_LIST }}
+            REQUIREMENTS_SHEET_NAME_PROMPT_FOR_AI=${{ secrets.DEPT2_REQUIREMENTS_SHEET_NAME_PROMPT_FOR_AI }}
+            TOKEN_LLM=${{ secrets.DEPT2_TOKEN_LLM }}
+            MODEL=${{ secrets.DEPT2_MODEL }}
+            DATA_BASE=${{ secrets.DATA_BASE }}
+            DEPARTAMENT_ID=${{ secrets.DEPT2_DEPARTAMENT_ID }}
+            CHECK_DAY_AGO=${{ secrets.CHECK_DAY_AGO }}
+            PROMPT_FILE=${{ secrets.DEPT2_PROMPT_FILE }}
+            EOF
+            
+            chmod 600 .env.department1 .env.department2
+            
+            # Загружаем Docker образ
+            docker load < callq.tar.gz
+            
+            # Останавливаем старые контейнеры (если запущены)
+            docker-compose -f docker-compose.department1.yml down 2>/dev/null || true
+            docker-compose -f docker-compose.department2.yml down 2>/dev/null || true
+            
+            # Удаляем старые контейнеры
+            docker rm callq-department1 callq-department2 2>/dev/null || true
+            
+            # Показываем информацию о собранном образе
+            docker images callq:latest
+            
+            echo "Docker image loaded successfully!"
+            echo "Containers will be started by cron jobs"
+            
+            # Очищаем старые образы (оставляем только последние 2)
+            docker images callq --format "{{.ID}}" | tail -n +3 | xargs -r docker rmi 2>/dev/null || true
+            
+            echo "Deployment successful!"
+      
+      - name: Update cron jobs
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          script: |
+            # Создаем временный crontab файл
+            TMP_CRON=$(mktemp)
+            
+            # Сохраняем текущий crontab (если есть)
+            crontab -l > "$TMP_CRON" 2>/dev/null || touch "$TMP_CRON"
+            
+            # Удаляем старые задачи callq (если есть)
+            sed -i '/callq/d' "$TMP_CRON"
+            
+            # Добавляем новые задачи для обоих отделов
+            cat >> "$TMP_CRON" << 'EOF'
+            # CallQ - Отдел 1 (Торговые представители)
+            0 3 * * * cd /opt/callq/callQ && docker-compose -f docker-compose.department1.yml up --build -d >> /opt/callq/callQ/logs/cron.log 2>&1
+            
+            # CallQ - Отдел 2 (Офис-менеджеры)
+            10 3 * * * cd /opt/callq/callQ && docker-compose -f docker-compose.department2.yml up --build -d >> /opt/callq/callQ/logs/cron.log 2>&1
+            EOF
+            
+            # Устанавливаем новый crontab
+            crontab "$TMP_CRON"
+            rm "$TMP_CRON"
+            
+            # Показываем текущий crontab
+            echo "Current crontab:"
+            crontab -l | grep callq || echo "No callq jobs found"
+      
+      - name: Cleanup
+        if: always()
+        run: |
+          rm -f callq.tar.gz
+

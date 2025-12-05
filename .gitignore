@@ -36,3 +36,4 @@ acc_google_api/
 # Environment files - ignore all .env except .env.example
 .env*
 !.env.example
+.github/SECRETS_SETUP.md

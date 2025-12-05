@@ -2,13 +2,10 @@ services:
   callq-department1:
     build:
       context: .
-      network: host
     container_name: callq-department1
-    dns:
-      - 8.8.8.8
-      - 1.1.1.1
+    network_mode: host
     env_file:
-      - .env
+      - .env.department1
     volumes:
       - ./logs:/app/logs
       - ./acc_google_api:/app/acc_google_api:ro

@@ -2,11 +2,8 @@ services:
   callq-department2:
     build:
       context: .
-      network: host
     container_name: callq-department2
-    dns:
-      - 8.8.8.8
-      - 1.1.1.1
+    network_mode: host
     env_file:
       - .env.department2
     volumes:
