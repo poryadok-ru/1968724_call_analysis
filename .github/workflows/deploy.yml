@@ -61,6 +61,24 @@ jobs:
           target: "/opt/callq/callQ/prompts"
           strip_components: 0
       
+      - name: Fix prompts directory structure
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          script: |
+            cd /opt/callq/callQ
+            # Исправляем структуру директорий, если промпты попали в prompts/prompts/
+            if [ -d "prompts/prompts" ]; then
+              mv prompts/prompts/* prompts/ 2>/dev/null || true
+              rmdir prompts/prompts 2>/dev/null || true
+              echo "Fixed prompts directory structure"
+            fi
+            # Проверяем наличие промптов
+            ls -la prompts/*.txt || echo "Warning: No prompt files found"
+      
       - name: Copy docker-compose files to server
         uses: appleboy/scp-action@v0.1.7
         with:
@@ -136,8 +154,8 @@ jobs:
             docker load < callq.tar.gz
             
             # Останавливаем старые контейнеры (если запущены)
-            docker-compose -f docker-compose.department1.yml down 2>/dev/null || true
-            docker-compose -f docker-compose.department2.yml down 2>/dev/null || true
+            docker compose -f docker-compose.department1.yml down 2>/dev/null || true
+            docker compose -f docker-compose.department2.yml down 2>/dev/null || true
             
             # Удаляем старые контейнеры
             docker rm callq-department1 callq-department2 2>/dev/null || true
@@ -164,8 +182,8 @@ jobs:
             # Создаем временный crontab файл
             TMP_CRON=$(mktemp)
             
-            # Сохраняем текущий crontab (если есть)
-            crontab -l > "$TMP_CRON" 2>/dev/null || touch "$TMP_CRON"
+            # Сохраняем текущий crontab пользователя deploy (если есть)
+            sudo -u deploy crontab -l > "$TMP_CRON" 2>/dev/null || touch "$TMP_CRON"
             
             # Удаляем старые задачи callq (если есть)
             sed -i '/callq/d' "$TMP_CRON"
@@ -179,19 +197,19 @@ jobs:
             # Добавляем новые задачи для обоих отделов
             cat >> "$TMP_CRON" << 'EOF'
             # CallQ - Отдел 1 (Торговые представители)
-            0 3 * * * cd /opt/callq/callQ && export JSON_AUTH="$(cat .google_json_key)" && docker-compose -f docker-compose.department1.yml up --build -d >> /opt/callq/callQ/logs/cron.log 2>&1
+            0 3 * * * cd /opt/callq/callQ && export JSON_AUTH="$(cat .google_json_key)" && docker compose -f docker-compose.department1.yml up --build -d >> /opt/callq/callQ/logs/cron.log 2>&1
             
             # CallQ - Отдел 2 (Офис-менеджеры)
-            10 3 * * * cd /opt/callq/callQ && export JSON_AUTH="$(cat .google_json_key)" && docker-compose -f docker-compose.department2.yml up --build -d >> /opt/callq/callQ/logs/cron.log 2>&1
+            10 3 * * * cd /opt/callq/callQ && export JSON_AUTH="$(cat .google_json_key)" && docker compose -f docker-compose.department2.yml up --build -d >> /opt/callq/callQ/logs/cron.log 2>&1
             EOF
             
-            # Устанавливаем новый crontab
-            crontab "$TMP_CRON"
+            # Устанавливаем новый crontab для пользователя deploy
+            sudo -u deploy crontab "$TMP_CRON"
             rm "$TMP_CRON"
             
             # Показываем текущий crontab
             echo "Current crontab:"
-            crontab -l | grep callq || echo "No callq jobs found"
+            sudo -u deploy crontab -l | grep callq || echo "No callq jobs found"
       
       - name: Cleanup
         if: always()
