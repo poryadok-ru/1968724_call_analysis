@@ -1,5 +1,5 @@
 from __future__ import annotations
-from dataclasses import dataclass
+from dataclasses import dataclass, fields
 from typing import List, Optional, Dict, Any
 
 
@@ -42,11 +42,13 @@ class LLMResponse:
     
     @classmethod
     def from_dict(cls, data: dict) -> LLMResponse:
+        message_fields = {f.name for f in fields(Message)}
+        
         choices = [
             Choice(
                 finish_reason=c['finish_reason'],
                 index=c['index'],
-                message=Message(**c['message'])
+                message=Message(**{k: v for k, v in c['message'].items() if k in message_fields})
             )
             for c in data['choices']
         ]

@@ -5,9 +5,10 @@ from callq.pipelines.save_results_db import save_batch_to_db
 from callq.clients.postgres import PostgresClient
 
 from datetime import date, timedelta
+import sys
 
 
-def daily_run() -> None:
+def daily_run(target_date: str = None) -> None:
     """
     Основная функция ежедневного анализа качества звонков.
     
@@ -41,10 +42,15 @@ def daily_run() -> None:
 
     postgres_client = PostgresClient(config.DATA_BASE.URL)
 
-    date_now = date.today() - timedelta(days=config.APP.CHECK_DAY_AGO)
-
-    check_day = date_now.strftime("%Y-%m-%d")
-    logger.info(f"Получаем звонки за {check_day}")
+    if target_date:
+        # Если дата указана явно, используем её
+        check_day = target_date
+        logger.info(f"Получаем звонки за указанную дату: {check_day}")
+    else:
+        # Иначе используем логику CHECK_DAY_AGO
+        date_now = date.today() - timedelta(days=config.APP.CHECK_DAY_AGO)
+        check_day = date_now.strftime("%Y-%m-%d")
+        logger.info(f"Получаем звонки за {check_day}")
 
     daily_calls = get_calls(
         check_day,
@@ -75,4 +81,7 @@ def daily_run() -> None:
     logger.info("END WORK")
 
 if __name__ == '__main__':
-    daily_run()
+    # Поддержка указания даты через аргумент командной строки
+    # Формат: python -m callq.pipelines.daily_run 2025-12-01
+    target_date = sys.argv[1] if len(sys.argv) > 1 else None
+    daily_run(target_date=target_date)
