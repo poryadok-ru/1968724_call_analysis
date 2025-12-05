@@ -6,8 +6,9 @@ services:
     network_mode: host
     env_file:
       - .env.department1
+    environment:
+      - JSON_AUTH=${JSON_AUTH}
     volumes:
       - ./logs:/app/logs
-      - ./acc_google_api:/app/acc_google_api:ro
       - ./prompts:/app/prompts:ro
     restart: "no"

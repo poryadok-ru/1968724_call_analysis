@@ -34,10 +34,9 @@ jobs:
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           port: ${{ secrets.DEPLOY_PORT || 22 }}
           script: |
-            mkdir -p /opt/callq/callQ/{logs,acc_google_api,prompts}
+            mkdir -p /opt/callq/callQ/{logs,prompts}
             chmod 755 /opt/callq/callQ
             chmod 755 /opt/callq/callQ/logs
-            chmod 700 /opt/callq/callQ/acc_google_api
             chmod 755 /opt/callq/callQ/prompts
       
       - name: Copy Docker image to server
@@ -73,20 +72,6 @@ jobs:
           target: "/opt/callq/callQ"
           strip_components: 0
       
-      - name: Create Google API credentials file
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.DEPLOY_HOST }}
-          username: ${{ secrets.DEPLOY_USER }}
-          key: ${{ secrets.DEPLOY_SSH_KEY }}
-          port: ${{ secrets.DEPLOY_PORT || 22 }}
-          script: |
-            cd /opt/callq/callQ/acc_google_api
-            cat > fine-avatar-469111-m1-95ff221217b8.json << 'EOF'
-            ${{ secrets.GOOGLE_JSON_KEY }}
-            EOF
-            chmod 600 fine-avatar-469111-m1-95ff221217b8.json
-      
       - name: Create .env files and deploy
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -97,8 +82,16 @@ jobs:
           script: |
             cd /opt/callq/callQ
             
-            # Создаем .env.department1 для первого отдела
-            cat > .env.department1 << EOF
+            # Функция для создания .env файла отдела
+            create_env_file() {
+              local env_file=$1
+              local agent_group_name=$2
+              local requirements_check_list=$3
+              local requirements_prompt=$4
+              local departament_id=$5
+              local prompt_file=$6
+              
+              cat > "$env_file" << EOF
             LOGGING_NAME=${{ secrets.LOGGING_NAME }}
             LOGGING_LEVEL=${{ secrets.LOGGING_LEVEL }}
             LOGGING_DIR=${{ secrets.LOGGING_DIR }}
@@ -109,43 +102,33 @@ jobs:
             PASSWORD=${{ secrets.PASSWORD }}
             AUTH_TYPE=${{ secrets.AUTH_TYPE }}
             AUTH_SYSTEM=${{ secrets.AUTH_SYSTEM }}
-            AGENT_GROUP_NAME=${{ secrets.DEPT1_AGENT_GROUP_NAME }}
-            JSON_AUTH=${{ secrets.JSON_AUTH_PATH }}
+            AGENT_GROUP_NAME=${agent_group_name}
             REQUIREMENTS_SHEET_ID=${{ secrets.REQUIREMENTS_SHEET_ID }}
-            REQUIREMENTS_SHEET_NAME_CHECK_LIST=${{ secrets.DEPT1_REQUIREMENTS_SHEET_NAME_CHECK_LIST }}
-            REQUIREMENTS_SHEET_NAME_PROMPT_FOR_AI=${{ secrets.DEPT1_REQUIREMENTS_SHEET_NAME_PROMPT_FOR_AI }}
-            TOKEN_LLM=${{ secrets.DEPT1_TOKEN_LLM }}
-            MODEL=${{ secrets.DEPT1_MODEL }}
+            REQUIREMENTS_SHEET_NAME_CHECK_LIST=${requirements_check_list}
+            REQUIREMENTS_SHEET_NAME_PROMPT_FOR_AI=${requirements_prompt}
+            TOKEN_LLM=${{ secrets.TOKEN_LLM }}
+            MODEL=${{ secrets.MODEL }}
             DATA_BASE=${{ secrets.DATA_BASE }}
-            DEPARTAMENT_ID=${{ secrets.DEPT1_DEPARTAMENT_ID }}
+            DEPARTAMENT_ID=${departament_id}
             CHECK_DAY_AGO=${{ secrets.CHECK_DAY_AGO }}
-            PROMPT_FILE=${{ secrets.DEPT1_PROMPT_FILE }}
+            PROMPT_FILE=${prompt_file}
             EOF
+            }
             
-            # Создаем .env.department2 для второго отдела
-            cat > .env.department2 << EOF
-            LOGGING_NAME=${{ secrets.LOGGING_NAME }}
-            LOGGING_LEVEL=${{ secrets.LOGGING_LEVEL }}
-            LOGGING_DIR=${{ secrets.LOGGING_DIR }}
-            LOGGING_ON_CONSOLE=${{ secrets.LOGGING_ON_CONSOLE }}
-            LOGGING_ON_FILE=${{ secrets.LOGGING_ON_FILE }}
-            LOGGING_ON_DT=${{ secrets.LOGGING_ON_DT }}
-            LOGIN=${{ secrets.LOGIN }}
-            PASSWORD=${{ secrets.PASSWORD }}
-            AUTH_TYPE=${{ secrets.AUTH_TYPE }}
-            AUTH_SYSTEM=${{ secrets.AUTH_SYSTEM }}
-            AGENT_GROUP_NAME=${{ secrets.DEPT2_AGENT_GROUP_NAME }}
-            JSON_AUTH=${{ secrets.JSON_AUTH_PATH }}
-            REQUIREMENTS_SHEET_ID=${{ secrets.REQUIREMENTS_SHEET_ID }}
-            REQUIREMENTS_SHEET_NAME_CHECK_LIST=${{ secrets.DEPT2_REQUIREMENTS_SHEET_NAME_CHECK_LIST }}
-            REQUIREMENTS_SHEET_NAME_PROMPT_FOR_AI=${{ secrets.DEPT2_REQUIREMENTS_SHEET_NAME_PROMPT_FOR_AI }}
-            TOKEN_LLM=${{ secrets.DEPT2_TOKEN_LLM }}
-            MODEL=${{ secrets.DEPT2_MODEL }}
-            DATA_BASE=${{ secrets.DATA_BASE }}
-            DEPARTAMENT_ID=${{ secrets.DEPT2_DEPARTAMENT_ID }}
-            CHECK_DAY_AGO=${{ secrets.CHECK_DAY_AGO }}
-            PROMPT_FILE=${{ secrets.DEPT2_PROMPT_FILE }}
-            EOF
+            # Создаем .env файлы для обоих отделов
+            create_env_file .env.department1 \
+              "${{ secrets.DEPT1_AGENT_GROUP_NAME }}" \
+              "${{ secrets.DEPT1_REQUIREMENTS_SHEET_NAME_CHECK_LIST }}" \
+              "${{ secrets.DEPT1_REQUIREMENTS_SHEET_NAME_PROMPT_FOR_AI }}" \
+              "${{ secrets.DEPT1_DEPARTAMENT_ID }}" \
+              "${{ secrets.DEPT1_PROMPT_FILE }}"
+            
+            create_env_file .env.department2 \
+              "${{ secrets.DEPT2_AGENT_GROUP_NAME }}" \
+              "${{ secrets.DEPT2_REQUIREMENTS_SHEET_NAME_CHECK_LIST }}" \
+              "${{ secrets.DEPT2_REQUIREMENTS_SHEET_NAME_PROMPT_FOR_AI }}" \
+              "${{ secrets.DEPT2_DEPARTAMENT_ID }}" \
+              "${{ secrets.DEPT2_PROMPT_FILE }}"
             
             chmod 600 .env.department1 .env.department2
             
@@ -187,13 +170,19 @@ jobs:
             # Удаляем старые задачи callq (если есть)
             sed -i '/callq/d' "$TMP_CRON"
             
+            # Создаем файл с JSON ключом для использования в cron
+            cat > /opt/callq/callQ/.google_json_key << 'JSONEOF'
+            ${{ secrets.GOOGLE_JSON_KEY }}
+            JSONEOF
+            chmod 600 /opt/callq/callQ/.google_json_key
+            
             # Добавляем новые задачи для обоих отделов
             cat >> "$TMP_CRON" << 'EOF'
             # CallQ - Отдел 1 (Торговые представители)
-            0 3 * * * cd /opt/callq/callQ && docker-compose -f docker-compose.department1.yml up --build -d >> /opt/callq/callQ/logs/cron.log 2>&1
+            0 3 * * * cd /opt/callq/callQ && export JSON_AUTH="$(cat .google_json_key)" && docker-compose -f docker-compose.department1.yml up --build -d >> /opt/callq/callQ/logs/cron.log 2>&1
             
             # CallQ - Отдел 2 (Офис-менеджеры)
-            10 3 * * * cd /opt/callq/callQ && docker-compose -f docker-compose.department2.yml up --build -d >> /opt/callq/callQ/logs/cron.log 2>&1
+            10 3 * * * cd /opt/callq/callQ && export JSON_AUTH="$(cat .google_json_key)" && docker-compose -f docker-compose.department2.yml up --build -d >> /opt/callq/callQ/logs/cron.log 2>&1
             EOF
             
             # Устанавливаем новый crontab

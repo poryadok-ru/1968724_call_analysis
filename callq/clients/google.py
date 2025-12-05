@@ -1,6 +1,8 @@
 from typing import List, Any
 import requests
 import time
+import json
+import os
 
 from google.oauth2.service_account import Credentials
 from googleapiclient.discovery import build
@@ -10,13 +12,20 @@ from callq.utils import typed_retry, logging
 
 
 class GoogleSheetsClient:
-    def __init__(self, credentials_path: str, sheet_id: str):
+    def __init__(self, credentials_path_or_json: str, sheet_id: str):
         self.logger = get_logger()
 
-        credentials = Credentials.from_service_account_file(
-            credentials_path,
-            scopes=['https://www.googleapis.com/auth/spreadsheets']
-        )
+        if credentials_path_or_json.strip().startswith('{'):
+            credentials_dict = json.loads(credentials_path_or_json)
+            credentials = Credentials.from_service_account_info(
+                credentials_dict,
+                scopes=['https://www.googleapis.com/auth/spreadsheets']
+            )
+        else:
+            credentials = Credentials.from_service_account_file(
+                credentials_path_or_json,
+                scopes=['https://www.googleapis.com/auth/spreadsheets']
+            )
 
         self.service = build('sheets', 'v4', credentials=credentials)
         self.sheet_id = sheet_id
