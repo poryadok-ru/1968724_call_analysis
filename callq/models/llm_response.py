@@ -43,6 +43,7 @@ class LLMResponse:
     @classmethod
     def from_dict(cls, data: dict) -> LLMResponse:
         message_fields = {f.name for f in fields(Message)}
+        usage_fields = {f.name for f in fields(Usage)}
         
         choices = [
             Choice(
@@ -53,7 +54,7 @@ class LLMResponse:
             for c in data['choices']
         ]
         
-        usage = Usage(**data['usage'])
+        usage = Usage(**{k: v for k, v in data['usage'].items() if k in usage_fields})
         
         return cls(
             id=data['id'],
