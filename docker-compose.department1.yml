@@ -1,7 +1,6 @@
 services:
   callq-department1:
-    build:
-      context: .
+    image: callq:latest
     container_name: callq-department1
     network_mode: host
     env_file:

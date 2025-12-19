@@ -197,10 +197,10 @@ jobs:
             # Добавляем новые задачи для обоих отделов
             cat >> "$TMP_CRON" << 'EOF'
             # CallQ - Отдел 1 (Торговые представители)
-            0 3 * * * cd /opt/callq/callQ && export JSON_AUTH="$(cat .google_json_key)" && docker compose -f docker-compose.department1.yml up --build -d >> /opt/callq/callQ/logs/cron.log 2>&1
+            0 3 * * * cd /opt/callq/callQ && export JSON_AUTH="$(cat .google_json_key)" && docker compose -f docker-compose.department1.yml up -d >> /opt/callq/callQ/logs/cron.log 2>&1
             
             # CallQ - Отдел 2 (Офис-менеджеры)
-            10 3 * * * cd /opt/callq/callQ && export JSON_AUTH="$(cat .google_json_key)" && docker compose -f docker-compose.department2.yml up --build -d >> /opt/callq/callQ/logs/cron.log 2>&1
+            10 3 * * * cd /opt/callq/callQ && export JSON_AUTH="$(cat .google_json_key)" && docker compose -f docker-compose.department2.yml up -d >> /opt/callq/callQ/logs/cron.log 2>&1
             EOF
             
             # Устанавливаем новый crontab для пользователя deploy

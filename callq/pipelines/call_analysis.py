@@ -11,6 +11,7 @@ from callq.models import CallRecord, Criterion, PromptInput
 from callq.models.call_analysis_report import CallAnalysisReport
 from callq.models.analysis_result import Result, Agreement
 from callq.utils import logging
+from callq.utils.criterion_normalizer import build_criterion_mapping
 
 
 def parse_llm_response(response) -> tuple:
@@ -55,7 +56,8 @@ def parse_llm_response(response) -> tuple:
 
 
 async def analyze_single_call(call: CallRecord, criteria_list: str, custom_instructions: str, 
-                             token: str, model: str, prompt_template: str, session: aiohttp.ClientSession, semaphore: asyncio.Semaphore):
+                             token: str, model: str, prompt_template: str, session: aiohttp.ClientSession, semaphore: asyncio.Semaphore,
+                             criterion_mapping: dict = None):
     logger = get_logger()
     
     if not call.transcription:
@@ -84,7 +86,7 @@ async def analyze_single_call(call: CallRecord, criteria_list: str, custom_instr
                     logger.info(f"Звонок {call.call.segmentId} НЕ подходит (токены: {tokens_used}) - пропуск")
                     return None
 
-                analysis_result = Result.from_list(analysis_data)
+                analysis_result = Result.from_list(analysis_data, criterion_mapping)
 
                 report = CallAnalysisReport(
                     call_record=call,
@@ -150,6 +152,10 @@ def analyze_calls_async(calls: List[CallRecord], criteria: Criterion, prompt_inp
 
     criteria_list = formation_of_criterion(criteria)
     custom_instructions = formation_additional_conditions(prompt_input)
+    
+    # Создаем маппинг для нормализации категорий и критериев
+    criterion_mapping = build_criterion_mapping(criteria)
+    logger.info(f"Создан маппинг для нормализации: {len(criterion_mapping)} критериев")
 
     async def run_analysis():
         semaphore = asyncio.Semaphore(max_concurrent)
@@ -158,7 +164,7 @@ def analyze_calls_async(calls: List[CallRecord], criteria: Criterion, prompt_inp
         logger.info(f"Анализ {len(calls_with_transcription)} звонков (параллельно: {max_concurrent})")
         async with aiohttp.ClientSession() as session:
             tasks = [
-                analyze_single_call(call, criteria_list, custom_instructions, token, model, prompt_template, session, semaphore)
+                analyze_single_call(call, criteria_list, custom_instructions, token, model, prompt_template, session, semaphore, criterion_mapping)
                 for call in calls_with_transcription
             ]
 

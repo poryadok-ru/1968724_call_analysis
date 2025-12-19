@@ -1,6 +1,6 @@
 from __future__ import annotations
 from dataclasses import dataclass
-from typing import List, Optional, Dict, Any
+from typing import List, Optional, Dict, Any, Tuple
 from datetime import datetime
 
 
@@ -13,13 +13,36 @@ class Evaluation:
     reason: str
 
     @staticmethod
-    def from_list(items: List[Dict[str, Any]]) -> List[Evaluation]:
+    def from_list(items: List[Dict[str, Any]], criterion_mapping: Optional[Dict[Tuple[str, str], Tuple[str, str]]] = None) -> List[Evaluation]:
+        """
+        Создает список Evaluation из словарей ответа LLM.
+        
+        Args:
+            items: Список словарей с данными оценок от LLM
+            criterion_mapping: Маппинг для нормализации категорий и критериев (опционально)
+        """
+        from callq.utils.criterion_normalizer import normalize_category_and_criterion
+        
         result: List[Evaluation] = []
         for item in items:
+            llm_category = item.get('category', '')
+            llm_criterion = item.get('criterion', '')
+            
+            if criterion_mapping:
+                category, criterion = normalize_category_and_criterion(
+                    llm_category, 
+                    llm_criterion, 
+                    criterion_mapping
+                )
+            else:
+                import re
+                category = re.sub(r'\s+', ' ', str(llm_category).strip())
+                criterion = re.sub(r'\s+', ' ', str(llm_criterion).strip())
+            
             result.append(
                 Evaluation(
-                    category=item.get('category'),
-                    criterion=item.get('criterion'),
+                    category=category,
+                    criterion=criterion,
                     score_given=item.get('score_given'),
                     max_score=item.get('max_score'),
                     reason=item.get('reason'),
@@ -35,7 +58,16 @@ class Recommendation:
     priority: str
 
     @staticmethod
-    def from_list(items: List[Dict[str, Any]]) -> List[Recommendation]:
+    def from_list(items: List[Dict[str, Any]], criterion_mapping: Optional[Dict[Tuple[str, str], Tuple[str, str]]] = None) -> List[Recommendation]:
+        """
+        Создает список Recommendation из словарей ответа LLM.
+        
+        Args:
+            items: Список словарей с данными рекомендаций от LLM
+            criterion_mapping: Маппинг для нормализации категорий (опционально)
+        """
+        from callq.utils.criterion_normalizer import normalize_text
+        
         result: List[Recommendation] = []
         allowed_priorities = {'high', 'medium', 'low'}
 
@@ -54,8 +86,18 @@ class Recommendation:
             if not issue or not recommendation_text:
                 continue
 
+            # Нормализуем категорию если есть маппинг
+            llm_category = item.get('category', '')
+            if criterion_mapping:
+                from callq.utils.criterion_normalizer import normalize_category_only
+                category = normalize_category_only(llm_category, criterion_mapping)
+            else:
+                # Fallback: просто очищаем от лишних пробелов
+                import re
+                category = re.sub(r'\s+', ' ', str(llm_category).strip())
+
             result.append(Recommendation(
-                category=item.get('category'),
+                category=category,
                 issue=issue,
                 recommendation=recommendation_text,
                 priority=priority_clean,
@@ -140,7 +182,14 @@ class Result:
     decline_reasons: Optional[List[DeclineReason]] = None
 
     @staticmethod
-    def from_list(data: Dict[str, Any]) -> Result:
+    def from_list(data: Dict[str, Any], criterion_mapping: Optional[Dict[Tuple[str, str], Tuple[str, str]]] = None) -> Result:
+        """
+        Создает объект Result из словаря ответа LLM.
+        
+        Args:
+            data: Словарь с данными анализа от LLM
+            criterion_mapping: Маппинг для нормализации категорий и критериев (опционально)
+        """
         decline_reasons_data = data.get('decline_reasons')
         decline_reasons = DeclineReason.from_list(decline_reasons_data) if decline_reasons_data else None
         
@@ -150,8 +199,8 @@ class Result:
             max_possible_score=int(data.get('max_possible_score') or 0),
             performance_percentage=int(data.get('performance_percentage') or 0),
 
-            evaluations=Evaluation.from_list(data.get('evaluations')),
-            recommendations=Recommendation.from_list(data.get('recommendations')),
+            evaluations=Evaluation.from_list(data.get('evaluations'), criterion_mapping),
+            recommendations=Recommendation.from_list(data.get('recommendations'), criterion_mapping),
             agreements=Agreement.from_list(data.get('agreements')),
             decline_reasons=decline_reasons
         )
