@@ -6,9 +6,10 @@ from callq.clients.postgres import PostgresClient
 
 from datetime import date, timedelta
 import sys
+import argparse
 
 
-def daily_run(target_date: str = None) -> None:
+def daily_run(target_date: str = None, dry_run: bool = False) -> None:
     """
     Основная функция ежедневного анализа качества звонков.
     
@@ -73,15 +74,53 @@ def daily_run(target_date: str = None) -> None:
     )
 
     if results:
-        save_batch_to_db(postgres_client, results, config.APP.DEPARTAMENT_ID)
-        logger.info(f"Сохранено {len(results)} результатов в БД")
+        if dry_run:
+            logger.info("=" * 80)
+            logger.info("РЕЖИМ ТЕСТИРОВАНИЯ (DRY RUN) - результаты НЕ будут сохранены в БД")
+            logger.info("=" * 80)
+            logger.info(f"Получено {len(results)} результатов анализа")
+            
+            # Выводим информацию о нормализации категорий и критериев
+            normalization_stats = {}
+            for report in results:
+                if report.analysis_result:
+                    for eval_item in report.analysis_result.evaluations:
+                        key = f"{eval_item.category} / {eval_item.criterion}"
+                        if key not in normalization_stats:
+                            normalization_stats[key] = 0
+                        normalization_stats[key] += 1
+            
+            logger.info(f"\nНайдено уникальных категорий/критериев: {len(normalization_stats)}")
+            logger.info("\nПримеры категорий и критериев из результатов:")
+            for i, (key, count) in enumerate(list(normalization_stats.items())[:10], 1):
+                logger.info(f"  {i}. {key} (встречается {count} раз)")
+            
+            if len(normalization_stats) > 10:
+                logger.info(f"  ... и еще {len(normalization_stats) - 10} уникальных комбинаций")
+            
+            # Выводим примеры результатов
+            logger.info("\nПримеры результатов анализа (первые 3):")
+            for i, report in enumerate(results[:3], 1):
+                logger.info(f"\n  Звонок {i} (ID: {report.call_id}):")
+                logger.info(f"    - Производительность: {report.analysis_result.performance_percentage}%")
+                logger.info(f"    - Оценок: {len(report.analysis_result.evaluations)}")
+                logger.info(f"    - Рекомендаций: {len(report.analysis_result.recommendations)}")
+                if report.analysis_result.evaluations:
+                    logger.info(f"    - Пример категории/критерия: {report.analysis_result.evaluations[0].category} / {report.analysis_result.evaluations[0].criterion}")
+        else:
+            save_batch_to_db(postgres_client, results, config.APP.DEPARTAMENT_ID)
+            logger.info(f"Сохранено {len(results)} результатов в БД")
     else:
         logger.info("Нет результатов для сохранения")
 
     logger.info("END WORK")
 
 if __name__ == '__main__':
-    # Поддержка указания даты через аргумент командной строки
-    # Формат: python -m callq.pipelines.daily_run 2025-12-01
-    target_date = sys.argv[1] if len(sys.argv) > 1 else None
-    daily_run(target_date=target_date)
+    parser = argparse.ArgumentParser(description='Запуск анализа звонков')
+    parser.add_argument('date', nargs='?', help='Дата для анализа в формате YYYY-MM-DD')
+    parser.add_argument('--dry-run', action='store_true', 
+                       help='Тестовый режим: выполнить анализ без сохранения в БД')
+    
+    args = parser.parse_args()
+    
+    daily_run(target_date=args.date, dry_run=args.dry_run)

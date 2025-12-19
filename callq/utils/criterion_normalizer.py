@@ -70,7 +70,7 @@ def find_best_match(
     llm_category: str, 
     llm_criterion: str, 
     mapping: Dict[Tuple[str, str], Tuple[str, str]],
-    similarity_threshold: float = 0.85
+    similarity_threshold: float = 0.7
 ) -> Optional[Tuple[str, str]]:
     """
     Находит лучшее совпадение для категории и критерия из ответа LLM.
@@ -164,7 +164,7 @@ def normalize_category_and_criterion(
 def normalize_category_only(
     llm_category: str,
     mapping: Dict[Tuple[str, str], Tuple[str, str]],
-    similarity_threshold: float = 0.85
+    similarity_threshold: float = 0.7
 ) -> str:
     """
     Нормализует только категорию из ответа LLM, сопоставляя с оригинальными значениями.
