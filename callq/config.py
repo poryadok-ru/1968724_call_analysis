@@ -10,6 +10,7 @@ class Logging:
     LOGGING_ON_CONSOLE: bool
     LOGGING_ON_FILE: bool
     LOGGING_ON_DT: bool
+    LOGGING_TOKEN: str = None
 
 @dataclass
 class TBankConfig:
@@ -75,6 +76,7 @@ def get_config() -> Config:
             LOGGING_ON_CONSOLE=os.environ.get("LOGGING_ON_CONSOLE", "true").lower() == "true",
             LOGGING_ON_FILE=os.environ.get("LOGGING_ON_FILE", "true").lower() == "true",
             LOGGING_ON_DT=os.environ.get("LOGGING_ON_DT", "true").lower() == "true",
+            LOGGING_TOKEN=os.environ.get("LOGGING_TOKEN"),
         ),
         T_BANK=TBankConfig(
             LOGIN=os.environ.get("LOGIN"),

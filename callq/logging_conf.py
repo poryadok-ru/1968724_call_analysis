@@ -2,8 +2,9 @@ import logging
 import os
 import sys
 from datetime import datetime
+from typing import Optional
 
-def logger_setup(name: str, level: str, log_dir: str, log_to_console: bool, log_to_file: bool, log_to_db: bool) -> logging.Logger:
+def logger_setup(name: str, level: str, log_dir: str, log_to_console: bool, log_to_file: bool, log_to_db: bool, logging_token: Optional[str] = None) -> logging.Logger:
     global name_logger
     logger = logging.getLogger(name)
     name_logger = name
@@ -47,7 +48,55 @@ def logger_setup(name: str, level: str, log_dir: str, log_to_console: bool, log_
             if log_to_console:
                 logger.warning(f"Не удалось создать файл логов: {e}")
     
+    if log_to_db and logging_token:
+        try:
+            from log import Log
+            remote_logger = Log(token=logging_token, silent_errors=True, timeout=5)
+            remote_handler = RemoteLoggingHandler(remote_logger, level=log_level)
+            remote_handler.setFormatter(formatter)
+            logger.addHandler(remote_handler)
+        except ImportError:
+            if log_to_console:
+                logger.warning("Библиотека poradock-logging не установлена. Удаленное логирование отключено.")
+        except Exception as e:
+            if log_to_console:
+                logger.warning(f"Не удалось настроить удаленное логирование: {e}")
+    
     return logger
+
+
+class RemoteLoggingHandler(logging.Handler):
+    """Кастомный handler для отправки логов через poradock-logging API"""
+    
+    def __init__(self, remote_logger, level=logging.NOTSET):
+        super().__init__(level)
+        self.remote_logger = remote_logger
+        self._status_map = {
+            logging.DEBUG: "Debug",
+            logging.INFO: "Info",
+            logging.WARNING: "Warning",
+            logging.ERROR: "Error",
+            logging.CRITICAL: "Critical",
+        }
+    
+    def emit(self, record):
+        """Отправляет лог на удаленный сервер"""
+        try:
+            msg = self.format(record)
+            status = self._status_map.get(record.levelno, "Info")
+
+            if record.levelno == logging.DEBUG:
+                self.remote_logger.debug(msg)
+            elif record.levelno == logging.INFO:
+                self.remote_logger.info(msg)
+            elif record.levelno == logging.WARNING:
+                self.remote_logger.warning(msg)
+            elif record.levelno == logging.ERROR:
+                self.remote_logger.error(msg)
+            elif record.levelno == logging.CRITICAL:
+                self.remote_logger.critical(msg)
+        except Exception:
+            self.handleError(record)
 
 def get_logger() -> logging.Logger:
     return logging.getLogger(name_logger)

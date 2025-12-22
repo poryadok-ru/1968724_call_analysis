@@ -29,7 +29,8 @@ def daily_run(target_date: str = None, dry_run: bool = False) -> None:
         log_dir=config.LOGGING.LOGGING_DIR,
         log_to_console=config.LOGGING.LOGGING_ON_CONSOLE,
         log_to_file=config.LOGGING.LOGGING_ON_FILE,
-        log_to_db=config.LOGGING.LOGGING_ON_DT
+        log_to_db=config.LOGGING.LOGGING_ON_DT,
+        logging_token=config.LOGGING.LOGGING_TOKEN
     )
 
     logger.info("START WORK")
