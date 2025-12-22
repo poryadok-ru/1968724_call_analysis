@@ -2,6 +2,14 @@ FROM python:3.13-alpine
 
 WORKDIR /app
 
+RUN apk add --no-cache \
+    git \
+    postgresql-dev \
+    gcc \
+    musl-dev \
+    libffi-dev \
+    && pip install --upgrade pip setuptools wheel
+
 COPY requirements.txt .
 
 RUN pip install --no-cache-dir -r requirements.txt
