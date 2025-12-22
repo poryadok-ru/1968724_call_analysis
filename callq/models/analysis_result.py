@@ -86,7 +86,6 @@ class Recommendation:
             if not issue or not recommendation_text:
                 continue
 
-            # Нормализуем категорию если есть маппинг
             llm_category = item.get('category', '')
             if criterion_mapping:
                 from callq.utils.criterion_normalizer import normalize_category_only
@@ -193,13 +192,23 @@ class Result:
         decline_reasons_data = data.get('decline_reasons')
         decline_reasons = DeclineReason.from_list(decline_reasons_data) if decline_reasons_data else None
         
+        evaluations = Evaluation.from_list(data.get('evaluations'), criterion_mapping)
+        
+        total_score = sum(eval.score_given for eval in evaluations if eval.score_given is not None)
+        max_possible_score = sum(eval.max_score for eval in evaluations if eval.max_score is not None)
+        
+        if max_possible_score > 0:
+            performance_percentage = int((total_score / max_possible_score) * 100)
+        else:
+            performance_percentage = 0
+        
         return Result(
             is_sales_call=bool(data.get('is_sales_call')),
-            total_score=int(data.get('total_score') or 0),
-            max_possible_score=int(data.get('max_possible_score') or 0),
-            performance_percentage=int(data.get('performance_percentage') or 0),
+            total_score=total_score,
+            max_possible_score=max_possible_score,
+            performance_percentage=performance_percentage,
 
-            evaluations=Evaluation.from_list(data.get('evaluations'), criterion_mapping),
+            evaluations=evaluations,
             recommendations=Recommendation.from_list(data.get('recommendations'), criterion_mapping),
             agreements=Agreement.from_list(data.get('agreements')),
             decline_reasons=decline_reasons
