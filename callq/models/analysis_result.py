@@ -39,12 +39,34 @@ class Evaluation:
                 category = re.sub(r'\s+', ' ', str(llm_category).strip())
                 criterion = re.sub(r'\s+', ' ', str(llm_criterion).strip())
             
+            score_given = item.get('score_given')
+            max_score = item.get('max_score')
+            
+            if score_given is not None and max_score is not None:
+                if score_given > max_score:
+                    from callq import get_logger
+                    logger = get_logger()
+                    logger.warning(
+                        f"Модель превысила max_score: score_given={score_given}, max_score={max_score}, "
+                        f"category='{category}', criterion='{criterion}'. Ограничиваем до max_score."
+                    )
+                    score_given = max_score
+                elif score_given < 0:
+                    # Отрицательные баллы не допускаются
+                    from callq import get_logger
+                    logger = get_logger()
+                    logger.warning(
+                        f"Модель выдала отрицательный score: score_given={score_given}, "
+                        f"category='{category}', criterion='{criterion}'. Устанавливаем 0."
+                    )
+                    score_given = 0
+            
             result.append(
                 Evaluation(
                     category=category,
                     criterion=criterion,
-                    score_given=item.get('score_given'),
-                    max_score=item.get('max_score'),
+                    score_given=score_given,
+                    max_score=max_score,
                     reason=item.get('reason'),
                 ),
             )
@@ -91,7 +113,6 @@ class Recommendation:
                 from callq.utils.criterion_normalizer import normalize_category_only
                 category = normalize_category_only(llm_category, criterion_mapping)
             else:
-                # Fallback: просто очищаем от лишних пробелов
                 import re
                 category = re.sub(r'\s+', ' ', str(llm_category).strip())
 

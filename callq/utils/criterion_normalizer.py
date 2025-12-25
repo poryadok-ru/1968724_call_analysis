@@ -220,3 +220,4 @@ def normalize_category_only(
         )
         # Fallback: просто очищаем от лишних пробелов
         return re.sub(r'\s+', ' ', str(llm_category).strip())
+
