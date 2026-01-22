@@ -50,6 +50,37 @@ def parse_llm_response(response) -> tuple:
         logger.error(f"Ошибка парсинга JSON: {e}\nКонтент: {content[:500]}")
         raise
 
+    if 'evaluations' in analysis_data:
+        evaluations = analysis_data.get('evaluations', [])
+        if not isinstance(evaluations, list):
+            logger.warning(f"Поле 'evaluations' не является списком: {type(evaluations)}")
+            analysis_data['evaluations'] = []
+        else:
+            invalid_count = 0
+            for i, eval_item in enumerate(evaluations):
+                if not isinstance(eval_item, dict):
+                    logger.warning(f"Оценка #{i} не является словарем: {type(eval_item)}")
+                    invalid_count += 1
+                    continue
+                
+                score_given = eval_item.get('score_given')
+                max_score = eval_item.get('max_score')
+                
+                if score_given is None or max_score is None:
+                    invalid_count += 1
+                    logger.warning(
+                        f"Оценка #{i} от LLM содержит отсутствующие поля: "
+                        f"category='{eval_item.get('category', 'N/A')}', "
+                        f"criterion='{eval_item.get('criterion', 'N/A')}', "
+                        f"score_given={score_given}, max_score={max_score}"
+                    )
+            
+            if invalid_count > 0:
+                logger.warning(
+                    f"Обнаружено {invalid_count} оценок с отсутствующими обязательными полями "
+                    f"из {len(evaluations)} полученных от LLM"
+                )
+
     tokens_used = response.get_tokens_used()
     
     return analysis_data, tokens_used

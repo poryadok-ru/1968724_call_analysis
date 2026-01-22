@@ -40,17 +40,33 @@ def save_call_analysis_to_db(postgres_client: PostgresClient, report, department
     decline_reasons = []
     
     if report.analysis_result:
-        evaluations = [
-            EvaluationDTO(
-                call_id=report.call_id,
-                category=eval.category,
-                criterion=eval.criterion,
-                score=eval.score_given,
-                max_score=eval.max_score,
-                reason=eval.reason
+        evaluations = []
+        skipped_count = 0
+        for eval in report.analysis_result.evaluations:
+            if eval.score_given is None or eval.max_score is None:
+                skipped_count += 1
+                logger.warning(
+                    f"Пропущена оценка для звонка {report.call_id}: "
+                    f"category='{eval.category}', criterion='{eval.criterion}', "
+                    f"score_given={eval.score_given}, max_score={eval.max_score}"
+                )
+                continue
+            
+            evaluations.append(
+                EvaluationDTO(
+                    call_id=report.call_id,
+                    category=eval.category,
+                    criterion=eval.criterion,
+                    score=eval.score_given,
+                    max_score=eval.max_score,
+                    reason=eval.reason
+                )
             )
-            for eval in report.analysis_result.evaluations
-        ]
+        
+        if skipped_count > 0:
+            logger.warning(
+                f"Для звонка {report.call_id} пропущено {skipped_count} оценок с отсутствующими значениями"
+            )
         
         recommendations = [
             RecommendationDTO(
